@@ -137,7 +137,15 @@ class FPM::Package::Gem < FPM::Package
 
   def load_package_info(gem_path)
 
-    spec = YAML.load(%x{#{attributes[:gem_gem]} specification #{gem_path} --yaml})
+    # XXX: Switch to using the safe load methods instead.
+    if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.1.0")
+      # Ruby 3.1.0 switched to a Psych/YAML version that defaults to "safe" loading
+      # and unfortunately `gem specification --yaml` emits YAML that requires
+      # class loaders to process correctly
+      spec = YAML.unsafe_load(%x{#{attributes[:gem_gem]} specification #{gem_path} --yaml})
+    else
+      spec = YAML.load(%x{#{attributes[:gem_gem]} specification #{gem_path} --yaml})
+    end
 
     if !attributes[:gem_package_prefix].nil?
       attributes[:gem_package_name_prefix] = attributes[:gem_package_prefix]
